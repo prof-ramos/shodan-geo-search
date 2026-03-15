@@ -16,14 +16,37 @@
             Informe uma coordenada e veja os dispositivos encontrados pelo
             Shodan na regiao pesquisada.
           </p>
-          <p class="lead" style="margin-top: 8px; font-size: 0.85rem;">
-            <a href="/dashboard" style="color: var(--accent); text-decoration: underline;">
+          <p class="lead lead--dashboard">
+            <a href="/dashboard" class="dashboard-link">
               Acessar Dashboard avançado →
             </a>
           </p>
         </div>
 
         <form id="search-form" class="search-form">
+          <label class="cep-field">
+            CEP
+            <div class="inline-controls">
+              <input
+                id="cep"
+                name="cep"
+                type="text"
+                placeholder="01310-100"
+                maxlength="9"
+                pattern="\d{5}-?\d{3}"
+              />
+              <button
+                type="button"
+                id="cep-lookup-btn"
+                title="Buscar coordenadas pelo CEP"
+                class="cep-btn"
+                aria-label="Buscar coordenadas pelo CEP"
+              >
+                🔍
+              </button>
+            </div>
+          </label>
+
           <label>
             Latitude
             <input
@@ -61,9 +84,15 @@
             />
           </label>
 
-          <div style="display: flex; gap: 8px; align-items: end;">
-            <button type="submit" style="flex: 1;">Buscar dispositivos</button>
-            <button type="button" id="location-btn" title="Usar minha localização" style="padding: 14px 18px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; border-radius: 14px; font-size: 1.2rem;">
+          <div class="action-row">
+            <button type="submit" class="primary-action">Buscar dispositivos</button>
+            <button
+              type="button"
+              id="location-btn"
+              title="Usar minha localização"
+              class="location-btn"
+              aria-label="Usar minha localização atual"
+            >
               📍
             </button>
           </div>
@@ -75,9 +104,13 @@
           <table id="results-table" class="results-table" hidden>
             <thead>
               <tr>
+                <th>Tipo</th>
                 <th>IP</th>
-                <th>Organizacao</th>
                 <th>Porta</th>
+                <th>Distância</th>
+                <th>Localização</th>
+                <th>Organização</th>
+                <th>Acesso</th>
               </tr>
             </thead>
             <tbody id="results-body"></tbody>

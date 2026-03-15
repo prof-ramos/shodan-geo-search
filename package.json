@@ -4,6 +4,8 @@
   "description": "Shodan geolocation search web app",
   "main": "server.js",
   "scripts": {
+    "dashboard:install": "npm --prefix client install",
+    "dashboard:build": "npm --prefix client run build",
     "start": "node server.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch"

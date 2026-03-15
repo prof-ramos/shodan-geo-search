@@ -27,3 +27,9 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Local agent runtime state
+.omc/state/
+
+# Temporary analysis notes
+analisecoderabbit_debug.md

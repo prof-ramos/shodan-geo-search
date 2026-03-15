@@ -1,7 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 
-const SHODAN_BASE = "https://api.shodan.io";
-
 const API_ENDPOINTS = {
   hostSearch: { path: "/shodan/host/search", label: "Host Search", placeholder: "apache country:BR" },
   hostInfo: { path: "/shodan/host/{ip}", label: "Host Info", placeholder: "8.8.8.8" },
@@ -13,21 +11,6 @@ const API_ENDPOINTS = {
   ports: { path: "/shodan/ports", label: "Ports", placeholder: "" },
   protocols: { path: "/shodan/protocols", label: "Protocols", placeholder: "" },
 };
-
-function buildUrl(endpoint, query, apiKey) {
-  let url = `${SHODAN_BASE}${endpoint.path}?key=${apiKey}`;
-  const p = endpoint.path;
-  if (p.includes("{ip}")) {
-    url = `${SHODAN_BASE}${p.replace("{ip}", encodeURIComponent(query))}?key=${apiKey}`;
-  } else if (p === "/shodan/host/search" || p === "/api-exploit/search") {
-    url += `&query=${encodeURIComponent(query)}`;
-  } else if (p === "/dns/resolve") {
-    url += `&hostnames=${encodeURIComponent(query)}`;
-  } else if (p === "/dns/reverse") {
-    url += `&ips=${encodeURIComponent(query)}`;
-  }
-  return url;
-}
 
 const GlitchText = ({ children, className = "" }) => {
   return <span className={className} style={{ fontFamily: "'Share Tech Mono', monospace" }}>{children}</span>;
@@ -80,11 +63,21 @@ export default function ShodanDashboard() {
     setLoading(true);
     setError(null);
     setResult(null);
-    const url = buildUrl(ep, query.trim(), apiKey);
-    log("req", `${ep.label} → ${url.replace(apiKey, "***")}`);
+    const payload = {
+      endpoint: activeEndpoint,
+      query: query.trim(),
+      apiKey,
+    };
+    log("req", `${ep.label} → /api/dashboard/proxy (${JSON.stringify({ endpoint: payload.endpoint, query: payload.query })})`);
 
     try {
-      const res = await fetch(url);
+      const res = await fetch("/api/dashboard/proxy", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
       const data = await res.json();
       if (!res.ok) {
         const msg = data.error || `HTTP ${res.status}`;

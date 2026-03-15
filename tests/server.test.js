@@ -1,177 +1,211 @@
-const request = require('supertest');
-const express = require('express');
-const path = require('path');
+const request = require("supertest");
+const { app, calculateDistance } = require("../server");
 
-// Mock app for testing (without starting the server)
-function createApp() {
-  const app = express();
-  app.use(express.json());
-  app.use(express.static(path.join(__dirname, '../public')));
+describe("Shodan Geo Search API", () => {
+  const originalApiKey = process.env.SHODAN_API_KEY;
+  const originalFetch = global.fetch;
 
-  app.post('/api/search', async (req, res) => {
-    const { latitude, longitude, radius } = req.body || {};
-
-    if (
-      !Number.isFinite(latitude) ||
-      !Number.isFinite(longitude) ||
-      !Number.isFinite(radius) ||
-      radius <= 0
-    ) {
-      return res.status(400).json({
-        error: 'Informe latitude, longitude e raio validos.',
-      });
-    }
-
-    const shodanApiKey = process.env.SHODAN_API_KEY;
-
-    if (!shodanApiKey) {
-      return res.status(500).json({
-        error: 'A variavel SHODAN_API_KEY nao foi configurada no servidor.',
-      });
-    }
-
-    const locationFilter = `geo:${latitude},${longitude},${radius}`;
-    const url = new URL('https://api.shodan.io/shodan/host/search');
-    url.searchParams.set('key', shodanApiKey);
-    url.searchParams.set('query', locationFilter);
-
-    try {
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        return res.status(response.status).json({
-          error: `Falha ao consultar o Shodan: ${errorText || response.statusText}`,
-        });
-      }
-
-      const data = await response.json();
-      const devices = Array.isArray(data.matches)
-        ? data.matches.map((match) => ({
-            ip: match.ip_str || 'N/A',
-            organization: match.org || 'N/A',
-            port: match.port || 'N/A',
-          }))
-        : [];
-
-      return res.json({ devices });
-    } catch (error) {
-      return res.status(500).json({
-        error: 'Erro interno ao buscar dispositivos no Shodan.',
-      });
-    }
+  beforeEach(() => {
+    process.env.SHODAN_API_KEY = "test-key";
+    global.fetch = jest.fn();
   });
 
-  return app;
-}
-
-describe('Shodan Geo Search API', () => {
-  let app;
-
-  beforeAll(() => {
-    app = createApp();
+  afterEach(() => {
+    process.env.SHODAN_API_KEY = originalApiKey;
+    global.fetch = originalFetch;
+    jest.clearAllMocks();
   });
 
-  describe('POST /api/search', () => {
-    test('should return 400 when latitude is missing', async () => {
+  describe("POST /api/search", () => {
+    test("should return 400 when latitude is missing", async () => {
       const response = await request(app)
-        .post('/api/search')
+        .post("/api/search")
         .send({ longitude: -46.6333, radius: 25 });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
     });
 
-    test('should return 400 when longitude is missing', async () => {
+    test("should return 400 when longitude is missing", async () => {
       const response = await request(app)
-        .post('/api/search')
+        .post("/api/search")
         .send({ latitude: -23.5505, radius: 25 });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
     });
 
-    test('should return 400 when radius is missing', async () => {
+    test("should return 400 when radius is missing", async () => {
       const response = await request(app)
-        .post('/api/search')
+        .post("/api/search")
         .send({ latitude: -23.5505, longitude: -46.6333 });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
     });
 
-    test('should return 400 when radius is negative', async () => {
+    test("should return 400 when radius is negative", async () => {
       const response = await request(app)
-        .post('/api/search')
+        .post("/api/search")
         .send({ latitude: -23.5505, longitude: -46.6333, radius: -10 });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
     });
 
-    test('should return 400 when latitude is not a number', async () => {
+    test("should return 400 when latitude is not a number", async () => {
       const response = await request(app)
-        .post('/api/search')
-        .send({ latitude: 'invalid', longitude: -46.6333, radius: 25 });
+        .post("/api/search")
+        .send({ latitude: "invalid", longitude: -46.6333, radius: 25 });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
     });
 
-    test('should return 500 when SHODAN_API_KEY is not configured', async () => {
-      // Temporarily remove the API key
-      const originalKey = process.env.SHODAN_API_KEY;
+    test("should return 500 when SHODAN_API_KEY is not configured", async () => {
       delete process.env.SHODAN_API_KEY;
 
       const response = await request(app)
-        .post('/api/search')
+        .post("/api/search")
         .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
 
       expect(response.status).toBe(500);
-      expect(response.body.error).toContain('SHODAN_API_KEY');
-
-      // Restore the API key
-      if (originalKey) process.env.SHODAN_API_KEY = originalKey;
+      expect(response.body.error).toContain("SHODAN_API_KEY");
     });
 
-    test('should accept valid coordinates', async () => {
-      // This test requires a valid API key
-      if (!process.env.SHODAN_API_KEY) {
-        console.log('Skipping test: SHODAN_API_KEY not set');
-        return;
-      }
+    test("should prefer https when ssl metadata exists on a non-standard TLS port", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          matches: [
+            {
+              ip_str: "203.0.113.10",
+              port: 8443,
+              org: "Example Org",
+              product: "IP Camera",
+              ssl: { tls_version: "TLSv1.3" },
+              location: {
+                country_name: "Brazil",
+                city: "Sao Paulo",
+                latitude: -23.5505,
+                longitude: -46.6333,
+              },
+            },
+          ],
+        }),
+      });
 
       const response = await request(app)
-        .post('/api/search')
-        .send({ latitude: -23.5505, longitude: -46.6333, radius: 1 });
+        .post("/api/search")
+        .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
 
-      // Should be 200 or 4xx from Shodan API, not 500
-      expect([200, 400, 401, 403, 429]).toContain(response.status);
-      
-      if (response.status === 200) {
-        expect(response.body.devices).toBeDefined();
-        expect(Array.isArray(response.body.devices)).toBe(true);
-      }
+      expect(response.status).toBe(200);
+      expect(response.body.devices[0].url).toBe("https://203.0.113.10:8443");
+    });
+
+    test("should calculate distance when device coordinates include zero", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          matches: [
+            {
+              ip_str: "198.51.100.25",
+              port: 80,
+              org: "Equator Camera",
+              product: "Webcam",
+              location: {
+                country_name: "Ghana",
+                city: "Tema",
+                latitude: 0,
+                longitude: 0,
+              },
+            },
+          ],
+        }),
+      });
+
+      const response = await request(app)
+        .post("/api/search")
+        .send({ latitude: 1, longitude: 1, radius: 25 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.devices[0].distance).toBeCloseTo(calculateDistance(1, 1, 0, 0), 5);
+    });
+
+    test("should surface Shodan API errors", async () => {
+      global.fetch.mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        text: async () => "rate limited",
+      });
+
+      const response = await request(app)
+        .post("/api/search")
+        .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
+
+      expect(response.status).toBe(429);
+      expect(response.body.error).toContain("rate limited");
     });
   });
 
-  describe('Static files', () => {
-    test('should serve index.html at root', async () => {
-      const response = await request(app).get('/');
-      expect(response.status).toBe(200);
-      expect(response.text).toContain('Shodan Geo Search');
+  describe("POST /api/dashboard/proxy", () => {
+    test("should reject dashboard proxy requests without api key", async () => {
+      const response = await request(app)
+        .post("/api/dashboard/proxy")
+        .send({ endpoint: "hostSearch", query: "city:\"Brasília\"" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("API key");
     });
 
-    test('should serve styles.css', async () => {
-      const response = await request(app).get('/styles.css');
+    test("should proxy dashboard requests through the backend", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        text: async () => JSON.stringify({ total: 1, matches: [{ ip_str: "203.0.113.20", port: 80 }] }),
+      });
+
+      const response = await request(app)
+        .post("/api/dashboard/proxy")
+        .send({
+          endpoint: "hostSearch",
+          query: "city:\"Brasília\"",
+          apiKey: "dashboard-key",
+        });
+
       expect(response.status).toBe(200);
-      expect(response.text).toContain('--accent');
+      expect(response.body.total).toBe(1);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          href: expect.stringContaining("query=city%3A%22Bras%C3%ADlia%22"),
+        })
+      );
+    });
+  });
+
+  describe("Static files", () => {
+    test("should serve index.html at root", async () => {
+      const response = await request(app).get("/");
+      expect(response.status).toBe(200);
+      expect(response.text).toContain("Shodan Geo Search");
     });
 
-    test('should serve script.js', async () => {
-      const response = await request(app).get('/script.js');
+    test("should serve styles.css", async () => {
+      const response = await request(app).get("/styles.css");
       expect(response.status).toBe(200);
-      expect(response.text).toContain('search-form');
+      expect(response.text).toContain("--accent");
+    });
+
+    test("should serve script.js", async () => {
+      const response = await request(app).get("/script.js");
+      expect(response.status).toBe(200);
+      expect(response.text).toContain("search-form");
+    });
+
+    test("should serve dashboard entrypoint", async () => {
+      const response = await request(app).get("/dashboard/");
+      expect(response.status).toBe(200);
+      expect(response.text).toContain("/dashboard/assets/");
     });
   });
 });
