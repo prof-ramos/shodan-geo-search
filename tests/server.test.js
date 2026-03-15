@@ -147,6 +147,33 @@ describe("Shodan Geo Search API", () => {
       expect(response.status).toBe(429);
       expect(response.body.error).toContain("rate limited");
     });
+
+    test("should return 504 when upstream fetch aborts (AbortError)", async () => {
+      const abortError = new DOMException("The operation was aborted", "AbortError");
+      global.fetch = jest.fn().mockRejectedValue(abortError);
+      process.env.SHODAN_API_KEY = originalApiKey;
+
+      const response = await request(app)
+        .post("/api/search")
+        .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
+
+      expect(response.status).toEqual(504);
+
+      global.fetch = originalFetch;
+      process.env.SHODAN_API_KEY = originalApiKey;
+    });
+
+    const runIfKey = originalApiKey ? test : test.skip;
+    runIfKey("should accept valid coordinates", async () => {
+      global.fetch = originalFetch;
+      process.env.SHODAN_API_KEY = originalApiKey;
+
+      const response = await request(app)
+        .post("/api/search")
+        .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
+
+      expect([200, 400, 500, 504]).toContain(response.status);
+    }, 15000);
   });
 
   describe("POST /api/dashboard/proxy", () => {

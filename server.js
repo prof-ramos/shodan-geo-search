@@ -123,8 +123,11 @@ app.post("/api/search", async (req, res) => {
   url.searchParams.set("key", shodanApiKey);
   url.searchParams.set("query", cameraFilter);
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: controller.signal });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -178,9 +181,16 @@ app.post("/api/search", async (req, res) => {
 
     return res.json({ devices });
   } catch (error) {
+    if (error.name === "AbortError") {
+      return res.status(504).json({
+        error: "Tempo limite excedido ao consultar o Shodan.",
+      });
+    }
     return res.status(500).json({
       error: "Erro interno ao buscar dispositivos no Shodan.",
     });
+  } finally {
+    clearTimeout(timer);
   }
 });
 

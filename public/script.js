@@ -113,13 +113,6 @@ if (cepLookupBtn) {
   });
 }
 
-function safe(str) {
-  if (str == null) return "N/A";
-  const div = document.createElement("div");
-  div.textContent = String(str);
-  return div.innerHTML;
-}
-
 function renderDevices(devices) {
   resultsBody.innerHTML = "";
 
@@ -153,7 +146,14 @@ function renderDevices(devices) {
 
     const linkTd = document.createElement("td");
     const anchor = document.createElement("a");
-    anchor.href = device.url;
+    try {
+      const parsed = new URL(device.url);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        anchor.setAttribute("href", parsed.href);
+      }
+    } catch (_) {
+      // invalid URL — leave href unset, anchor renders as plain text
+    }
     anchor.target = "_blank";
     anchor.rel = "noopener noreferrer";
     anchor.className = "btn-link";
