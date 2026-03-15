@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shodan Geo Search</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="panel">
+        <div class="panel__intro">
+          <p class="eyebrow">Shodan Geo Search</p>
+          <h1>Busque dispositivos por latitude, longitude e raio</h1>
+          <p class="lead">
+            Informe uma coordenada e veja os dispositivos encontrados pelo
+            Shodan na regiao pesquisada.
+          </p>
+        </div>
+
+        <form id="search-form" class="search-form">
+          <label>
+            Latitude
+            <input
+              id="latitude"
+              name="latitude"
+              type="number"
+              step="any"
+              placeholder="-23.5505"
+              required
+            />
+          </label>
+
+          <label>
+            Longitude
+            <input
+              id="longitude"
+              name="longitude"
+              type="number"
+              step="any"
+              placeholder="-46.6333"
+              required
+            />
+          </label>
+
+          <label>
+            Raio (km)
+            <input
+              id="radius"
+              name="radius"
+              type="number"
+              step="any"
+              min="0.1"
+              placeholder="25"
+              required
+            />
+          </label>
+
+          <button type="submit">Buscar dispositivos</button>
+        </form>
+
+        <p id="status-message" class="status-message" aria-live="polite"></p>
+
+        <div class="table-wrap">
+          <table id="results-table" class="results-table" hidden>
+            <thead>
+              <tr>
+                <th>IP</th>
+                <th>Organizacao</th>
+                <th>Porta</th>
+              </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+  </body>
+</html>
