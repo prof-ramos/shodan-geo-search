@@ -193,7 +193,7 @@ describe("Shodan Geo Search API", () => {
     test("should serve styles.css", async () => {
       const response = await request(app).get("/styles.css");
       expect(response.status).toBe(200);
-      expect(response.text).toContain("--accent");
+      expect(response.text).toContain("--cyan");
     });
 
     test("should serve script.js", async () => {

@@ -33,3 +33,6 @@ npm-debug.log*
 
 # Temporary analysis notes
 analisecoderabbit_debug.md
+
+# Generated reports
+outputs/relatorios/

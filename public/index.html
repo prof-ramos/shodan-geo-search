@@ -7,18 +7,39 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div class="ambient-grid" aria-hidden="true"></div>
+    <div class="ambient-orb ambient-orb--magenta" aria-hidden="true"></div>
+    <div class="ambient-orb ambient-orb--cyan" aria-hidden="true"></div>
     <main class="page">
       <section class="panel">
         <div class="panel__intro">
-          <p class="eyebrow">Shodan Geo Search</p>
-          <h1>Busque dispositivos por latitude, longitude e raio</h1>
+          <div class="eyebrow-row">
+            <p class="eyebrow">Shodan Geo Search</p>
+            <span class="signal-pill">LINK ESTÁVEL</span>
+          </div>
+          <p class="kicker">Urban Recon Interface</p>
+          <h1>Rastreie câmeras expostas como se estivesse navegando por uma megacidade neon</h1>
           <p class="lead">
-            Informe uma coordenada e veja os dispositivos encontrados pelo
-            Shodan na regiao pesquisada.
+            Cruze latitude, longitude e raio para localizar superfícies visíveis
+            na malha pública do Shodan com uma interface feita para triagem rápida.
           </p>
+          <div class="intro-meta">
+            <div class="meta-card">
+              <span class="meta-card__label">MODO</span>
+              <strong>Geo Scan</strong>
+            </div>
+            <div class="meta-card">
+              <span class="meta-card__label">FONTE</span>
+              <strong>Shodan API</strong>
+            </div>
+            <div class="meta-card">
+              <span class="meta-card__label">NAVEGAÇÃO</span>
+              <strong>Ao vivo</strong>
+            </div>
+          </div>
           <p class="lead lead--dashboard">
             <a href="/dashboard" class="dashboard-link">
-              Acessar Dashboard avançado →
+              Abrir console avançado →
             </a>
           </p>
         </div>
