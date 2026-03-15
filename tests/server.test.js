@@ -4,6 +4,7 @@ const { app, calculateDistance } = require("../server");
 describe("Shodan Geo Search API", () => {
   const originalApiKey = process.env.SHODAN_API_KEY;
   const originalFetch = global.fetch;
+  const runIfKey = originalApiKey ? test : test.skip;
 
   beforeEach(() => {
     process.env.SHODAN_API_KEY = "test-key";
@@ -155,6 +156,17 @@ describe("Shodan Geo Search API", () => {
 
       expect(response.status).toBe(429);
       expect(response.body.error).toContain("rate limited");
+    });
+
+    runIfKey("should accept valid coordinates", async () => {
+      global.fetch = originalFetch;
+      process.env.SHODAN_API_KEY = originalApiKey;
+
+      const response = await request(app)
+        .post("/api/search")
+        .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
+
+      expect([200, 401, 403, 429, 502]).toContain(response.status);
     });
   });
 
