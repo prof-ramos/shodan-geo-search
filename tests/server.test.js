@@ -63,14 +63,23 @@ describe("Shodan Geo Search API", () => {
     });
 
     test("should return 500 when SHODAN_API_KEY is not configured", async () => {
+      const originalKey = process.env.SHODAN_API_KEY;
       delete process.env.SHODAN_API_KEY;
 
-      const response = await request(app)
-        .post("/api/search")
-        .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
+      try {
+        const response = await request(app)
+          .post("/api/search")
+          .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
 
-      expect(response.status).toBe(500);
-      expect(response.body.error).toContain("SHODAN_API_KEY");
+        expect(response.status).toBe(500);
+        expect(response.body.error).toContain("SHODAN_API_KEY");
+      } finally {
+        if (originalKey) {
+          process.env.SHODAN_API_KEY = originalKey;
+        } else {
+          delete process.env.SHODAN_API_KEY;
+        }
+      }
     });
 
     test("should prefer https when ssl metadata exists on a non-standard TLS port", async () => {
