@@ -9,6 +9,13 @@ const shodanApiKey = process.env.SHODAN_API_KEY;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Dashboard route (React app)
+app.get("/dashboard", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
+});
+
+app.use("/dashboard", express.static(path.join(__dirname, "public", "dashboard")));
+
 app.post("/api/search", async (req, res) => {
   const { latitude, longitude, radius } = req.body || {};
 
