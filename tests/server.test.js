@@ -4,6 +4,7 @@ const { app, calculateDistance } = require("../server");
 describe("Shodan Geo Search API", () => {
   const originalApiKey = process.env.SHODAN_API_KEY;
   const originalFetch = global.fetch;
+  const runIfKey = originalApiKey ? test : test.skip;
 
   beforeEach(() => {
     process.env.SHODAN_API_KEY = "test-key";
@@ -63,14 +64,23 @@ describe("Shodan Geo Search API", () => {
     });
 
     test("should return 500 when SHODAN_API_KEY is not configured", async () => {
+      const originalKey = process.env.SHODAN_API_KEY;
       delete process.env.SHODAN_API_KEY;
 
-      const response = await request(app)
-        .post("/api/search")
-        .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
+      try {
+        const response = await request(app)
+          .post("/api/search")
+          .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
 
-      expect(response.status).toBe(500);
-      expect(response.body.error).toContain("SHODAN_API_KEY");
+        expect(response.status).toBe(500);
+        expect(response.body.error).toContain("SHODAN_API_KEY");
+      } finally {
+        if (originalKey) {
+          process.env.SHODAN_API_KEY = originalKey;
+        } else {
+          delete process.env.SHODAN_API_KEY;
+        }
+      }
     });
 
     test("should prefer https when ssl metadata exists on a non-standard TLS port", async () => {
@@ -146,6 +156,17 @@ describe("Shodan Geo Search API", () => {
 
       expect(response.status).toBe(429);
       expect(response.body.error).toContain("rate limited");
+    });
+
+    runIfKey("should accept valid coordinates", async () => {
+      global.fetch = originalFetch;
+      process.env.SHODAN_API_KEY = originalApiKey;
+
+      const response = await request(app)
+        .post("/api/search")
+        .send({ latitude: -23.5505, longitude: -46.6333, radius: 25 });
+
+      expect([200, 401, 403, 429, 502]).toContain(response.status);
     });
   });
 

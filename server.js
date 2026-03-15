@@ -123,8 +123,12 @@ app.post("/api/search", async (req, res) => {
   url.searchParams.set("key", shodanApiKey);
   url.searchParams.set("query", cameraFilter);
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -178,6 +182,10 @@ app.post("/api/search", async (req, res) => {
 
     return res.json({ devices });
   } catch (error) {
+    clearTimeout(timer);
+    if (error.name === "AbortError") {
+      return res.status(504).json({ error: "A API do Shodan demorou demais" });
+    }
     return res.status(500).json({
       error: "Erro interno ao buscar dispositivos no Shodan.",
     });

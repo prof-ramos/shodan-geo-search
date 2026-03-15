@@ -113,7 +113,7 @@ if (cepLookupBtn) {
 }
 
 function renderDevices(devices) {
-  resultsBody.innerHTML = "";
+  resultsBody.replaceChildren();
 
   devices.forEach((device) => {
     const distance = Number.isFinite(device.distance)
@@ -195,7 +195,7 @@ form.addEventListener("submit", async (event) => {
 
   setStatus("Buscando dispositivos...");
   resultsTable.hidden = true;
-  resultsBody.innerHTML = "";
+  resultsBody.replaceChildren();
 
   try {
     const response = await fetch("/api/search", {
