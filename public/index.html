@@ -61,7 +61,12 @@
             />
           </label>
 
-          <button type="submit">Buscar dispositivos</button>
+          <div style="display: flex; gap: 8px; align-items: end;">
+            <button type="submit" style="flex: 1;">Buscar dispositivos</button>
+            <button type="button" id="location-btn" title="Usar minha localização" style="padding: 14px 18px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; border-radius: 14px; font-size: 1.2rem;">
+              📍
+            </button>
+          </div>
         </form>
 
         <p id="status-message" class="status-message" aria-live="polite"></p>
