@@ -1,70 +1,106 @@
 const path = require("path");
 const express = require("express");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
-const app = express();
 const port = process.env.PORT || 3000;
-const shodanApiKey = process.env.SHODAN_API_KEY;
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+function createApp() {
+  const app = express();
 
-app.post("/api/search", async (req, res) => {
-  const { latitude, longitude, radius } = req.body || {};
+  app.use(helmet());
+  app.use(express.json());
+  app.use(
+    "/api/",
+    rateLimit({
+      windowMs: 60_000,
+      max: 30,
+      standardHeaders: true,
+      legacyHeaders: false,
+    })
+  );
+  app.use(express.static(path.join(__dirname, "public")));
 
-  if (
-    !Number.isFinite(latitude) ||
-    !Number.isFinite(longitude) ||
-    !Number.isFinite(radius) ||
-    radius <= 0
-  ) {
-    return res.status(400).json({
-      error: "Informe latitude, longitude e raio validos.",
-    });
-  }
+  app.post("/api/search", async (req, res) => {
+    const { latitude, longitude, radius } = req.body || {};
 
-  if (!shodanApiKey) {
-    return res.status(500).json({
-      error: "A variavel SHODAN_API_KEY nao foi configurada no servidor.",
-    });
-  }
-
-  const locationFilter = `geo:${latitude},${longitude},${radius}`;
-  const url = new URL("https://api.shodan.io/shodan/host/search");
-  url.searchParams.set("key", shodanApiKey);
-  url.searchParams.set("query", locationFilter);
-
-  try {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({
-        error: `Falha ao consultar o Shodan: ${errorText || response.statusText}`,
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      !Number.isFinite(radius) ||
+      radius <= 0
+    ) {
+      return res.status(400).json({
+        error: "Informe latitude, longitude e raio validos.",
       });
     }
 
-    const data = await response.json();
-    const devices = Array.isArray(data.matches)
-      ? data.matches.map((match) => ({
-          ip: match.ip_str || "N/A",
-          organization: match.org || "N/A",
-          port: match.port || "N/A",
-        }))
-      : [];
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return res.status(400).json({
+        error: "Coordenadas fora dos limites validos.",
+      });
+    }
 
-    return res.json({ devices });
-  } catch (error) {
-    return res.status(500).json({
-      error: "Erro interno ao buscar dispositivos no Shodan.",
-    });
-  }
-});
+    const shodanApiKey = process.env.SHODAN_API_KEY;
 
-app.get("*", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+    if (!shodanApiKey) {
+      return res.status(500).json({
+        error: "A variavel SHODAN_API_KEY nao foi configurada no servidor.",
+      });
+    }
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+    const locationFilter = `geo:${latitude},${longitude},${radius}`;
+    const url = new URL("https://api.shodan.io/shodan/host/search");
+    url.searchParams.set("key", shodanApiKey);
+    url.searchParams.set("query", locationFilter);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Shodan API error:", response.status, errorText);
+        return res.status(502).json({
+          error: "Falha ao consultar o Shodan. Tente novamente.",
+        });
+      }
+
+      const data = await response.json();
+      const devices = Array.isArray(data.matches)
+        ? data.matches.map((match) => ({
+            ip: match.ip_str || "N/A",
+            organization: match.org || "N/A",
+            port: match.port || "N/A",
+          }))
+        : [];
+
+      return res.json({ devices });
+    } catch (error) {
+      clearTimeout(timer);
+      console.error("Shodan fetch error:", error);
+      return res.status(500).json({
+        error: "Erro interno ao buscar dispositivos no Shodan.",
+      });
+    }
+  });
+
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+  });
+
+  return app;
+}
+
+module.exports = { createApp };
+
+if (require.main === module) {
+  const app = createApp();
+  app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });
+}

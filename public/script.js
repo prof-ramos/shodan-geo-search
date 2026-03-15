@@ -13,11 +13,11 @@ function renderDevices(devices) {
 
   devices.forEach((device) => {
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${device.ip}</td>
-      <td>${device.organization}</td>
-      <td>${device.port}</td>
-    `;
+    ["ip", "organization", "port"].forEach((key) => {
+      const td = document.createElement("td");
+      td.textContent = device[key];
+      row.appendChild(td);
+    });
     resultsBody.appendChild(row);
   });
 
