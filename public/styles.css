@@ -196,7 +196,7 @@ body::before {
 
 h1 {
   margin: 0;
-  max-width: 12ch;
+  max-width: 20ch;
   font-family: "Audiowide", cursive;
   font-size: clamp(2.55rem, 5vw, 5rem);
   line-height: 0.96;

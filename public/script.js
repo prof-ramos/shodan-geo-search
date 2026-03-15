@@ -7,6 +7,7 @@ const latitudeInput = document.getElementById("latitude");
 const longitudeInput = document.getElementById("longitude");
 const cepInput = document.getElementById("cep");
 const cepLookupBtn = document.getElementById("cep-lookup-btn");
+const submitBtn = document.getElementById("submit-btn");
 const CEP_LOOKUP_DELAY_MS = 400;
 
 function createDebounce(fn, wait) {
@@ -112,6 +113,13 @@ if (cepLookupBtn) {
   });
 }
 
+function safe(str) {
+  if (str == null) return "N/A";
+  const div = document.createElement("div");
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
 function renderDevices(devices) {
   resultsBody.innerHTML = "";
 
@@ -121,15 +129,38 @@ function renderDevices(devices) {
       : "N/A";
 
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td><span class="badge badge-${device.type.toLowerCase().replace(/\s/g, '-')}">${device.type}</span></td>
-      <td>${device.ip}</td>
-      <td>${device.port}</td>
-      <td>${distance}</td>
-      <td>${device.city}, ${device.country}</td>
-      <td>${device.organization}</td>
-      <td><a href="${device.url}" target="_blank" class="btn-link">Abrir &nearr;</a></td>
-    `;
+
+    const typeTd = document.createElement("td");
+    const badge = document.createElement("span");
+    badge.className = `badge badge-${device.type.toLowerCase().replace(/\s/g, '-')}`;
+    badge.textContent = device.type;
+    typeTd.appendChild(badge);
+
+    const ipTd = document.createElement("td");
+    ipTd.textContent = device.ip;
+
+    const portTd = document.createElement("td");
+    portTd.textContent = device.port;
+
+    const distTd = document.createElement("td");
+    distTd.textContent = distance;
+
+    const locTd = document.createElement("td");
+    locTd.textContent = `${device.city}, ${device.country}`;
+
+    const orgTd = document.createElement("td");
+    orgTd.textContent = device.organization;
+
+    const linkTd = document.createElement("td");
+    const anchor = document.createElement("a");
+    anchor.href = device.url;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.className = "btn-link";
+    anchor.textContent = "Abrir ↗";
+    linkTd.appendChild(anchor);
+
+    row.append(typeTd, ipTd, portTd, distTd, locTd, orgTd, linkTd);
     resultsBody.appendChild(row);
   });
 
@@ -183,6 +214,12 @@ if (locationBtn) {
   });
 }
 
+function setSubmitLoading(isLoading) {
+  if (!submitBtn) return;
+  submitBtn.disabled = isLoading;
+  submitBtn.textContent = isLoading ? "Buscando..." : "Buscar dispositivos";
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -194,6 +231,7 @@ form.addEventListener("submit", async (event) => {
   };
 
   setStatus("Buscando dispositivos...");
+  setSubmitLoading(true);
   resultsTable.hidden = true;
   resultsBody.innerHTML = "";
 
@@ -226,5 +264,7 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     setStatus(error.message || "Erro ao buscar dispositivos.", true);
     renderDevices([]);
+  } finally {
+    setSubmitLoading(false);
   }
 });
