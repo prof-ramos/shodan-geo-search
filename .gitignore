@@ -30,9 +30,11 @@ npm-debug.log*
 
 # Local agent runtime state
 .omc/state/
+.omx/
 
 # Temporary analysis notes
 analisecoderabbit_debug.md
 
 # Generated reports
 outputs/relatorios/
+DEFAULT_CREDENTIALS.md
